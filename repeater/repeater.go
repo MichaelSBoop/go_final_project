@@ -30,7 +30,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			return response, err
 		}
 		var nextDay time.Time
-		if days == 1 && now.Format("20060102") == dateParsed.Format("20060102") {
+		if days == 1 && now.Format("20060102") == date {
 			nextDay = now
 			return nextDay.Format("20060102"), nil
 		}
