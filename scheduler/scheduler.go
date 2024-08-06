@@ -6,17 +6,20 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	_ "modernc.org/sqlite"
 )
 
-func Scheduler(db *sql.DB) {
+var db *sql.DB
+
+func Scheduler() (*sql.DB, error) {
 	appPath, err := os.Executable()
 	if err != nil {
 		log.Fatal(err)
 	}
 	dbPath := os.Getenv("TODO_DBFILE")
 	if dbPath == "" {
-		fmt.Println("incorrect database path")
-		return
+		return db, fmt.Errorf("incorrect database path")
 	}
 	dbFile := filepath.Join(filepath.Dir(appPath), dbPath)
 	_, err = os.Stat(dbFile)
@@ -25,14 +28,22 @@ func Scheduler(db *sql.DB) {
 	if err != nil {
 		install = true
 	}
-	if install == true {
-		db.Exec(`CREATE TABLE scheduler (
+	db, err = sql.Open("sqlite", dbFile)
+	if err != nil {
+		return db, err
+	}
+	if install {
+		_, err = db.Exec(`CREATE TABLE IF NOT EXISTS scheduler (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date CHAR(8) NOT NULL DEFAULT '',
-    title VARCHAR(64) NOT NULL DEFAULT '',
-    comment VARCHAR(64) NOT NULL DEFAULT '',
+    title VARCHAR(128) NOT NULL DEFAULT '',
+    comment TEXT NOT NULL DEFAULT '',
     repeat VARCHAR(128) NOT NULL DEFAULT ''
 	);
-	CREATE INDEX scheduler_date ON scheduler (date);`)
+	CREATE INDEX IF NOT EXISTS scheduler_date ON scheduler (date);`)
 	}
+	if err != nil {
+		return db, err
+	}
+	return db, nil
 }
