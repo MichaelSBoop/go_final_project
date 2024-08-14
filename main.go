@@ -27,7 +27,7 @@ func checkPort() string {
 	port, ok := os.LookupEnv("TODO_PORT")
 	if !ok {
 		fmt.Println("no port specified in .env file, switching to port 7540")
-		return ":" + port
+		return ":7540"
 	}
 	_, err := strconv.Atoi(port)
 	if err != nil {
