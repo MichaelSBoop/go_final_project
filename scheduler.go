@@ -20,12 +20,10 @@ func Scheduler() (*sql.DB, error) {
 	// }
 	dbPath, ok := os.LookupEnv("TODO_DBFILE")
 	if !ok {
-		dbPath = "scheduler.db"
+		dbPath = "./"
 	}
 	// ? Тест тянет файл базы из окружения, но если создавать её с помощью программы, база появится
 	// ? рядом с исполняемым файлом, соответственно, тесты ищут её не там, где надо. Проблема в тесте?
-	// dbFile := filepath.Join(filepath.Dir(appPath), dbPath)
-	// fmt.Println(dbFile)
 	dbFile := filepath.Join(dbPath, "scheduler.db")
 	_, err := os.Stat(dbFile)
 

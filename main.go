@@ -34,7 +34,7 @@ func checkPort() string {
 		fmt.Println("incorrect port type")
 		return ""
 	}
-	return "127.0.0.1:" + port
+	return ":" + port
 }
 
 func main() {
@@ -53,7 +53,9 @@ func main() {
 	http.HandleFunc("/api/task/done", handlers.HandleTaskDone(db))
 
 	// Прослушиваем порт, стандартный или взятый из окружения
-	if err := http.ListenAndServe(checkPort(), nil); err != nil {
+	port := checkPort()
+	fmt.Printf("Starting server on port %s\n", port)
+	if err := http.ListenAndServe(port, nil); err != nil {
 		fmt.Printf("server setup error:%v\n", err)
 	}
 }
