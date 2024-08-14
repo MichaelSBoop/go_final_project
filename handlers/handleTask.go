@@ -36,23 +36,28 @@ func HandleTask(s storage.Storage) http.HandlerFunc {
 				jsr.ErrorJSON(w, fmt.Errorf("title is required"), http.StatusBadRequest)
 				return
 			}
+			var newDate string
+			now := time.Now()
 			if task.Date == "" {
-				task.Date = time.Now().Format(rep.Format)
+				task.Date = now.Format(rep.Format)
 			}
 			dateParsed, err := time.Parse(rep.Format, task.Date)
 			if err != nil {
 				jsr.ErrorJSON(w, fmt.Errorf("failed to parse date: %v", err), http.StatusBadRequest)
 				return
 			}
-			if dateParsed.Before(time.Now()) {
+			// Записываем дату в задачу в зависимости от наличия правила повторения и самой даты
+			newDate = task.Date
+			if dateParsed.Before(now) {
 				if task.Repeat != "" {
-					task.Date, err = rep.NextDate(time.Now(), task.Date, task.Repeat)
+					newDate, err = rep.NextDate(now, newDate, task.Repeat)
 					if err != nil {
 						jsr.ErrorJSON(w, err, http.StatusInternalServerError)
 						return
 					}
+					task.Date = newDate
 				} else {
-					task.Date = time.Now().Format(rep.Format)
+					task.Date = now.Format(rep.Format)
 				}
 			}
 			// Добавляем задачу в базу данных и возвращаем её id

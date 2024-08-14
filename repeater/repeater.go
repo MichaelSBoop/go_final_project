@@ -37,13 +37,6 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			return response, err
 		}
 		var nextDay time.Time
-		if now.Format(Format) == date {
-			nextDay = dateParsed.AddDate(0, 0, days)
-			if days == 1 {
-				nextDay = now
-			}
-			return nextDay.Format(Format), nil
-		}
 		nextDay = dateParsed.AddDate(0, 0, days)
 		for nextDay.Before(now) {
 			nextDay = nextDay.AddDate(0, 0, days)
