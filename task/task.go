@@ -1,5 +1,6 @@
 package task
 
+// Структура, описывающая задачу
 type Task struct {
 	ID      string `json:"id"`
 	Date    string `json:"date"`

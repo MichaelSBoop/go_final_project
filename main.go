@@ -6,16 +6,12 @@ import (
 	"os"
 	"strconv"
 
-	// "github.com/MichaelSBoop/go_final_project/handlers"
-
 	_ "modernc.org/sqlite"
 
 	"github.com/MichaelSBoop/go_final_project/handlers"
 	"github.com/MichaelSBoop/go_final_project/storage"
 	"github.com/joho/godotenv"
 )
-
-const Format string = "20060102"
 
 var webDir string = "./web"
 
@@ -42,16 +38,19 @@ func checkPort() string {
 }
 
 func main() {
-	storage, err := storage.CreateStorage(Scheduler())
+	// Создаём базу на основе данных scheduler: проверка на наличие базы и таблицы внутри
+	db, err := storage.CreateStorage(Scheduler())
 	if err != nil {
 		fmt.Printf("database setup error:%v\n", err)
 	}
-	defer storage.DB.Close()
+	defer db.DB.Close()
+
+	// TODO: добавить mux или chi для обработчиков
 	http.Handle("/", http.FileServer(http.Dir(webDir)))
 	http.HandleFunc("/api/nextdate", handlers.HandleNextDate)
-	// http.HandleFunc("/api/task", handlers.HandleTask)
-	// http.HandleFunc("/api/tasks", handlers.HandleTasks)
-	// http.HandleFunc("/api/task/done", handlers.HandleTaskDone)
+	http.HandleFunc("/api/task", handlers.HandleTask(db))
+	http.HandleFunc("/api/tasks", handlers.HandleTasks(db))
+	http.HandleFunc("/api/task/done", handlers.HandleTaskDone(db))
 
 	// Прослушиваем порт, стандартный или взятый из окружения
 	if err := http.ListenAndServe(checkPort(), nil); err != nil {
