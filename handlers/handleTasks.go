@@ -1,51 +1,36 @@
 package handlers
 
 import (
-	"database/sql"
-	"encoding/json"
+	"fmt"
 	"net/http"
-	"os"
 
-	"github.com/MichaelSBoop/go_final_project/types"
+	jsr "github.com/MichaelSBoop/go_final_project/JSONResponse"
+	"github.com/MichaelSBoop/go_final_project/storage"
 )
 
-func HandleTasks(w http.ResponseWriter, r *http.Request) {
-	var tasks []types.Task
-	query := `SELECT * FROM scheduler ORDER BY date LIMIT 50`
-	db, err := sql.Open("sqlite", os.Getenv("TODO_DBFILE"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	rows, err := db.Query(query)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var task types.Task
-		err := rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+const limit = 50
+
+// HandleTasks формирует список задач на основе заданного лимита
+func HandleTasks(s storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Проверяем правильность метода
+		if r.Method != http.MethodGet {
+			jsr.ErrorJSON(w, fmt.Errorf("incorrect method"), http.StatusBadRequest)
 			return
 		}
-		tasks = append(tasks, task)
+		// Получаем список задач
+		tasks, err := s.GetTasks(limit)
+		if err != nil {
+			jsr.ErrorJSON(w, fmt.Errorf("failed to retrieve tasks from database: %v", err), http.StatusBadRequest)
+			return
+		}
+		// Формируем JSON ответ
+		jsonTasks := jsr.FormulateResponseTasks(tasks)
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(jsonTasks)
+		if err != nil {
+			fmt.Println("failed to write data response")
+		}
 	}
-	if err = rows.Err(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if tasks == nil {
-		tasks = []types.Task{}
-	}
-	jsonRes, err := json.Marshal(map[string][]types.Task{"tasks": tasks})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonRes)
 }

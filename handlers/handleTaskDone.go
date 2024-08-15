@@ -1,74 +1,72 @@
 package handlers
 
 import (
-	"database/sql"
-	"encoding/json"
+	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
-	"github.com/MichaelSBoop/go_final_project/actions"
-	"github.com/MichaelSBoop/go_final_project/repeater"
+	jsr "github.com/MichaelSBoop/go_final_project/JSONResponse"
+	rep "github.com/MichaelSBoop/go_final_project/repeater"
+	"github.com/MichaelSBoop/go_final_project/storage"
+	"github.com/MichaelSBoop/go_final_project/task"
 )
 
-func HandleTaskDone(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "incorrect http method", http.StatusBadRequest)
-		return
-	}
-	db, err := sql.Open("sqlite", os.Getenv("TODO_DBFILE"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	defer db.Close()
-	id := r.URL.Query().Get("id")
-	if _, err := strconv.Atoi(id); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		jsonErr := map[string]string{"error": "incorrect id"}
-		json.NewEncoder(w).Encode(jsonErr)
-		return
-	}
-	task, err := actions.GetTask(id, db)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		jsonErr := map[string]string{"error": err.Error()}
-		json.NewEncoder(w).Encode(jsonErr)
-		return
-	}
-	if task.Repeat != "" {
-		now := time.Now()
-		newDate, err := repeater.NextDate(now, task.Date, task.Repeat)
+// HandleTaskDone помечает задачу как выполненную;
+// в зависимости от наличия повторений задача может быть обновлена или удалена
+func HandleTaskDone(s storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Проверяем правильность http-метода
+		if r.Method != http.MethodPost {
+			jsr.ErrorJSON(w, fmt.Errorf("incorrect method"), http.StatusBadRequest)
+			return
+		}
+		var task task.Task
+		// Получаем задачу по id и проверяем на наличие ошибок
+		id := r.URL.Query().Get("id")
+		if id == "" {
+			jsr.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
+			return
+		}
+		_, err := strconv.Atoi(id)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
+			jsr.ErrorJSON(w, fmt.Errorf("incorrect id: %v", err), http.StatusBadRequest)
 			return
 		}
-		task.Date = newDate
-		if err = actions.ChangeTask(task, db); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
+		task, err = s.GetTask(id)
+		if err != nil {
+			jsr.ErrorJSON(w, fmt.Errorf("failed to retrieve task: %v", err), http.StatusBadRequest)
 			return
 		}
-	} else {
-		if err := actions.DeleteTask(task.ID, db); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
+		if task.Date == "" {
+			task.Date = time.Now().Format(rep.Format)
+		}
+		// Если в задаче указано правило повторения, вычисляется следующая дата выполнения;
+		// иначе задача считается как одноразовая и удаляется
+		if task.Repeat != "" {
+			newDate, err := rep.NextDate(time.Now(), task.Date, task.Repeat)
+			if err != nil {
+				jsr.ErrorJSON(w, err, http.StatusInternalServerError)
+				return
+			}
+			task.Date = newDate
+			if err = s.ChangeTask(task); err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("failed to change task data: %v", err), http.StatusBadRequest)
+				return
+			}
+		} else {
+			if err := s.DeleteTask(id); err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("failed to delete task: %v", err), http.StatusBadRequest)
+				return
+			}
+		}
+		// Формулируем JSON для ответа
+		jsonEmpty := jsr.FormulateResponseEmpty()
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		_, err = w.Write(jsonEmpty)
+		if err != nil {
+			fmt.Println("failed to write data response")
 		}
 	}
-	jsonResp, err := json.Marshal(struct{}{})
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		jsonErr := map[string]string{"error": err.Error()}
-		json.NewEncoder(w).Encode(jsonErr)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonResp)
 }

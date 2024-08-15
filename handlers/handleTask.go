@@ -2,213 +2,189 @@ package handlers
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
-	"github.com/MichaelSBoop/go_final_project/actions"
-	"github.com/MichaelSBoop/go_final_project/repeater"
-	"github.com/MichaelSBoop/go_final_project/types"
+	jsr "github.com/MichaelSBoop/go_final_project/JSONResponse"
+	rep "github.com/MichaelSBoop/go_final_project/repeater"
+	"github.com/MichaelSBoop/go_final_project/storage"
+	"github.com/MichaelSBoop/go_final_project/task"
 )
 
-func HandleTask(w http.ResponseWriter, r *http.Request) {
-	db, err := sql.Open("sqlite", os.Getenv("TODO_DBFILE"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	defer db.Close()
-	switch r.Method {
-	case http.MethodPost:
-		var task types.Task
-		var buf bytes.Buffer
-		_, err := buf.ReadFrom(r.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		if task.Title == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": "title is required"}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		if task.Date == "" {
-			task.Date = time.Now().Format("20060102")
-		}
-		dateParsed, err := time.Parse("20060102", task.Date)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		if dateParsed.Before(time.Now()) {
-			if task.Repeat != "" {
-				task.Date, err = repeater.NextDate(time.Now(), task.Date, task.Repeat)
-				if err != nil {
-					w.WriteHeader(http.StatusBadRequest)
-					jsonErr := map[string]string{"error": err.Error()}
-					json.NewEncoder(w).Encode(jsonErr)
-					return
+// HandleTask обрабатывает GET, POST, PUT и DELETE http-запросы, обращаясь к базе данных
+func HandleTask(s storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		// Добавление задачи
+		case http.MethodPost:
+			// Считываем тело в буфер и проводим ряд проверок на возможные ошибки
+			var task task.Task
+			var buf bytes.Buffer
+			_, err := buf.ReadFrom(r.Body)
+			if err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("failed to read body: %v", err), http.StatusBadRequest)
+				return
+			}
+			if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("failed to unmarshal data: %v", err), http.StatusBadRequest)
+				return
+			}
+			if task.Title == "" {
+				jsr.ErrorJSON(w, fmt.Errorf("title is required"), http.StatusBadRequest)
+				return
+			}
+			var newDate string
+			now := time.Now()
+			if task.Date == "" {
+				task.Date = now.Format(rep.Format)
+			}
+			dateParsed, err := time.Parse(rep.Format, task.Date)
+			if err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("failed to parse date: %v", err), http.StatusBadRequest)
+				return
+			}
+			// Записываем дату в задачу в зависимости от наличия правила повторения и самой даты
+			newDate = task.Date
+			if dateParsed.Before(now) {
+				if task.Repeat != "" {
+					newDate, err = rep.NextDate(now, newDate, task.Repeat)
+					if err != nil {
+						jsr.ErrorJSON(w, err, http.StatusInternalServerError)
+						return
+					}
+					task.Date = newDate
+				} else {
+					task.Date = now.Format(rep.Format)
 				}
-			} else {
-				task.Date = time.Now().Format("20060102")
+			}
+			// Добавляем задачу в базу данных и возвращаем её id
+			taskId, err := s.AddTask(task)
+			if err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("failed to add task: %v", err), http.StatusBadRequest)
+				return
+			}
+			// Формулируем JSON для записи
+			jsonId := jsr.FormulateResponseID("id", taskId)
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusCreated)
+			_, err = w.Write(jsonId)
+			if err != nil {
+				fmt.Println("failed to write data response")
+			}
+		// Получение задачи
+		case http.MethodGet:
+			// Считываем id
+			var task task.Task
+			id := r.URL.Query().Get("id")
+			if id == "" {
+				jsr.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
+				return
+			}
+			// Получаем задачу
+			task, err := s.GetTask(id)
+			if err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("failed to retrieve task: %v", err), http.StatusBadRequest)
+				return
+			}
+			// Формируем JSON для записи
+			jsonTask := jsr.FormulateResponseTask(task)
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusOK)
+			_, err = w.Write(jsonTask)
+			if err != nil {
+				fmt.Println("failed to write data response")
+			}
+		// Обновление задачи
+		case http.MethodPut:
+			// Для обновления задачи считываем тело в буфер и проводим те же проверки, которые используем для записи
+			var task task.Task
+			var buf bytes.Buffer
+			_, err := buf.ReadFrom(r.Body)
+			if err != nil {
+				jsr.ErrorJSON(w, err, http.StatusBadRequest)
+				return
+			}
+			if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("failed to unmarshal data:%v", err), http.StatusBadRequest)
+				return
+			}
+			if task.ID == "" {
+				jsr.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
+				return
+			}
+			_, err = strconv.Atoi(task.ID)
+			if err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("incorrect id: %v", err), http.StatusBadRequest)
+				return
+			}
+			_, err = s.GetTask(task.ID)
+			if err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("incorrect id: %v", err), http.StatusBadRequest)
+				return
+			}
+			if task.Title == "" {
+				jsr.ErrorJSON(w, fmt.Errorf("title is required"), http.StatusBadRequest)
+				return
+			}
+			if task.Date == "" {
+				task.Date = time.Now().Format(rep.Format)
+			}
+			dateParsed, err := time.Parse(rep.Format, task.Date)
+			if err != nil {
+				jsr.ErrorJSON(w, err, http.StatusBadRequest)
+				return
+			}
+			if dateParsed.Before(time.Now()) {
+				if task.Repeat != "" {
+					task.Date, err = rep.NextDate(time.Now(), task.Date, task.Repeat)
+					if err != nil {
+						jsr.ErrorJSON(w, fmt.Errorf("failed to set next date: %v", err), http.StatusBadRequest)
+						return
+					}
+				} else {
+					task.Date = time.Now().Format(rep.Format)
+				}
+			}
+			// Изменяем задачу в базе
+			if err = s.ChangeTask(task); err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("failed to change task data: %v", err), http.StatusBadRequest)
+				return
+			}
+			// Формируем JSON для записи
+			jsonEmpty := jsr.FormulateResponseEmpty()
+			// if err != nil {
+			// 	jsr.ErrorJSON(w, fmt.Errorf("failed to marshal data: %v", err), http.StatusBadRequest)
+			// 	return
+			// }
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusOK)
+			_, err = w.Write(jsonEmpty)
+			if err != nil {
+				fmt.Println("failed to write data response")
+			}
+		// Удаление задачи
+		case http.MethodDelete:
+			// Получаем id и и на его основе удаляем задачу из базы
+			id := r.URL.Query().Get("id")
+			if id == "" {
+				jsr.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
+				return
+			}
+			if err := s.DeleteTask(id); err != nil {
+				jsr.ErrorJSON(w, fmt.Errorf("failed to delete task: %v", err), http.StatusBadRequest)
+				return
+			}
+			// Формируем JSON ответ
+			jsonEmpty := jsr.FormulateResponseEmpty()
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write(jsonEmpty)
+			if err != nil {
+				fmt.Println("failed to write data response")
 			}
 		}
-		taskId, err := actions.AddTask(task, db)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		jsonId, err := json.Marshal(map[string]string{"id": taskId})
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(jsonId)
-
-	case http.MethodGet:
-		id := r.URL.Query().Get("id")
-		task, err := actions.GetTask(id, db)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		jsonTask, err := json.Marshal(task)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(jsonTask)
-
-	case http.MethodPut:
-		var task types.Task
-		var buf bytes.Buffer
-		_, err := buf.ReadFrom(r.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		if task.ID == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": "id is required"}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		_, err = strconv.Atoi(task.ID)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": "incorrect id"}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		_, err = actions.GetTask(task.ID, db)
-		if err != nil {
-			jsonErr := map[string]string{"error": "incorrect id"}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		if task.Title == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": "title is required"}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		if task.Date == "" {
-			task.Date = time.Now().Format("20060102")
-		}
-		dateParsed, err := time.Parse("20060102", task.Date)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		if dateParsed.Before(time.Now()) {
-			if task.Repeat != "" {
-				task.Date, err = repeater.NextDate(time.Now(), task.Date, task.Repeat)
-				if err != nil {
-					w.WriteHeader(http.StatusBadRequest)
-					jsonErr := map[string]string{"error": err.Error()}
-					json.NewEncoder(w).Encode(jsonErr)
-					return
-				}
-			} else {
-				task.Date = time.Now().Format("20060102")
-			}
-		}
-		if err = actions.ChangeTask(task, db); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		jsonResp, err := json.Marshal(struct{}{})
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(jsonResp)
-
-	case http.MethodDelete:
-		id := r.URL.Query().Get("id")
-		if _, err := strconv.Atoi(id); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": "id is required"}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		if err := actions.DeleteTask(id, db); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		jsonResp, err := json.Marshal(struct{}{})
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			jsonErr := map[string]string{"error": err.Error()}
-			json.NewEncoder(w).Encode(jsonErr)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(jsonResp)
 	}
 }
