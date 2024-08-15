@@ -36,30 +36,36 @@ func HandleTask(s storage.Storage) http.HandlerFunc {
 				jsr.ErrorJSON(w, fmt.Errorf("title is required"), http.StatusBadRequest)
 				return
 			}
-			var newDate string
-			now := time.Now()
-			if task.Date == "" {
-				task.Date = now.Format(rep.Format)
-			}
-			dateParsed, err := time.Parse(rep.Format, task.Date)
+			// Записываем дату в задачу в зависимости от наличия правила повторения и самой даты
+			newDate, err := rep.PostLogic(task)
 			if err != nil {
-				jsr.ErrorJSON(w, fmt.Errorf("failed to parse date: %v", err), http.StatusBadRequest)
+				jsr.ErrorJSON(w, fmt.Errorf("failed to calculate new date: %v", err), http.StatusBadRequest)
 				return
 			}
-			// Записываем дату в задачу в зависимости от наличия правила повторения и самой даты
-			newDate = task.Date
-			if dateParsed.Before(now) {
-				if task.Repeat != "" {
-					newDate, err = rep.NextDate(now, newDate, task.Repeat)
-					if err != nil {
-						jsr.ErrorJSON(w, err, http.StatusInternalServerError)
-						return
-					}
-					task.Date = newDate
-				} else {
-					task.Date = now.Format(rep.Format)
-				}
-			}
+			task.Date = newDate
+			// var newDate string
+			// now := time.Now()
+			// if task.Date == "" {
+			// 	task.Date = now.Format(rep.Format)
+			// }
+			// dateParsed, err := time.Parse(rep.Format, task.Date)
+			// if err != nil {
+			// 	jsr.ErrorJSON(w, fmt.Errorf("failed to parse date: %v", err), http.StatusBadRequest)
+			// 	return
+			// }
+			// // Записываем дату в задачу в зависимости от наличия правила повторения и самой даты
+			// newDate = task.Date
+			// if task.Repeat != "" {
+			// 	newDate, err = rep.NextDate(now, newDate, task.Repeat)
+			// 	if err != nil {
+			// 		jsr.ErrorJSON(w, err, http.StatusInternalServerError)
+			// 		return
+			// 	}
+			// }
+			// if dateParsed.Before(now) && task.Repeat != "" && task.Date != now.Format(rep.Format) {
+			// 	task.Date = newDate
+			// }
+			// fmt.Println(task.Title, task.Date)
 			// Добавляем задачу в базу данных и возвращаем её id
 			taskId, err := s.AddTask(task)
 			if err != nil {
