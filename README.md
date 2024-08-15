@@ -21,7 +21,7 @@
 
 Создайте образ следующей командой:
 ```bash
-docker build --tags go_final_project:v1.0
+docker build --tags go_final_project:v1.0 .
 ```
 После этого запустите контейнер:
 ```bash
