@@ -104,11 +104,7 @@ func (s Storage) ChangeTask(task task.Task) error {
 }
 
 // DeleteTask удаляет задачу из базы по id
-func (s Storage) DeleteTask(id string) error {
-	_, err := strconv.Atoi(id)
-	if err != nil {
-		return err
-	}
+func (s Storage) DeleteTask(id int) error {
 	res, err := s.DB.Exec("DELETE FROM scheduler WHERE id = :id",
 		sql.Named("id", id))
 	if err != nil {

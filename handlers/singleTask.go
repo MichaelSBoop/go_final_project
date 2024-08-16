@@ -152,7 +152,12 @@ func SingleTask(s storage.Storage) http.HandlerFunc {
 				encode.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
 				return
 			}
-			if err := s.DeleteTask(id); err != nil {
+			intId, err := strconv.Atoi(id)
+			if err != nil {
+				encode.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
+				return
+			}
+			if err := s.DeleteTask(intId); err != nil {
 				encode.ErrorJSON(w, fmt.Errorf("failed to delete task: %v", err), http.StatusBadRequest)
 				return
 			}
@@ -160,7 +165,7 @@ func SingleTask(s storage.Storage) http.HandlerFunc {
 			jsonEmpty := encode.FormulateResponseEmpty()
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			w.WriteHeader(http.StatusOK)
-			_, err := w.Write(jsonEmpty)
+			_, err = w.Write(jsonEmpty)
 			if err != nil {
 				fmt.Println("failed to write data response")
 			}

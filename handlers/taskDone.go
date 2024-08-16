@@ -28,7 +28,7 @@ func TaskDone(s storage.Storage) http.HandlerFunc {
 			encode.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
 			return
 		}
-		_, err := strconv.Atoi(id)
+		intId, err := strconv.Atoi(id)
 		if err != nil {
 			encode.ErrorJSON(w, fmt.Errorf("incorrect id: %v", err), http.StatusBadRequest)
 			return
@@ -55,7 +55,7 @@ func TaskDone(s storage.Storage) http.HandlerFunc {
 				return
 			}
 		} else {
-			if err := s.DeleteTask(id); err != nil {
+			if err := s.DeleteTask(intId); err != nil {
 				encode.ErrorJSON(w, fmt.Errorf("failed to delete task: %v", err), http.StatusBadRequest)
 				return
 			}
