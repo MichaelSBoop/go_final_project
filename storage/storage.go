@@ -93,9 +93,12 @@ func (s Storage) ChangeTask(task task.Task) error {
 	if err != nil {
 		return err
 	}
-	_, err = res.RowsAffected()
+	row, err := res.RowsAffected()
 	if err != nil {
 		return err
+	}
+	if row == 0 {
+		return fmt.Errorf("no rows were affected")
 	}
 	return nil
 }
@@ -111,9 +114,12 @@ func (s Storage) DeleteTask(id string) error {
 	if err != nil {
 		return err
 	}
-	_, err = res.RowsAffected()
+	row, err := res.RowsAffected()
 	if err != nil {
 		return err
+	}
+	if row == 0 {
+		return fmt.Errorf("no rows were affected")
 	}
 	return nil
 }
