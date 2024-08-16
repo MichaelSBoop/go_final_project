@@ -49,8 +49,10 @@ func SingleTask(s storage.Storage) http.HandlerFunc {
 				encode.ErrorJSON(w, fmt.Errorf("failed to add task: %v", err), http.StatusBadRequest)
 				return
 			}
+			// Последний идентификатор возвращается в формате int64, приводим его в строку
+			stringId := strconv.FormatInt(taskId, 10)
 			// Формулируем JSON для записи
-			jsonId := encode.FormulateResponseID("id", taskId)
+			jsonId := encode.FormulateResponseID("id", stringId)
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			w.WriteHeader(http.StatusCreated)
 			_, err = w.Write(jsonId)
@@ -77,7 +79,6 @@ func SingleTask(s storage.Storage) http.HandlerFunc {
 				encode.ErrorJSON(w, fmt.Errorf("failed to retrieve task: %v", err), http.StatusBadRequest)
 				return
 			}
-			task.ID = id
 			// Формируем JSON для записи
 			jsonTask := encode.FormulateResponseTask(task)
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")

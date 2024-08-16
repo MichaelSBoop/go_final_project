@@ -5,7 +5,6 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
 
 	"github.com/MichaelSBoop/go_final_project/task"
 	_ "modernc.org/sqlite"
@@ -24,21 +23,20 @@ func CreateStorage(db *sql.DB, err error) (Storage, error) {
 }
 
 // AddTask добавляет задачу в созданную базу и возвращает id
-func (s Storage) AddTask(task task.Task) (string, error) {
+func (s Storage) AddTask(task task.Task) (int64, error) {
 	resp, err := s.DB.Exec("INSERT INTO scheduler (date, title, comment, repeat) VALUES (:date, :title, :comment, :repeat)",
 		sql.Named("date", task.Date),
 		sql.Named("title", task.Title),
 		sql.Named("comment", task.Comment),
 		sql.Named("repeat", task.Repeat))
 	if err != nil {
-		return "", fmt.Errorf("failed to add task:%v", err)
+		return 0, fmt.Errorf("failed to add task: %v", err)
 	}
 	id, err := resp.LastInsertId()
 	if err != nil {
-		return "", fmt.Errorf("failed to retrieve task id:%v", err)
+		return 0, fmt.Errorf("failed to retrieve task id: %v", err)
 	}
-	// Последний идентификатор возвращается в формате int64, приводим его в строку и возвращаем
-	return strconv.FormatInt(id, 10), nil
+	return id, nil
 }
 
 // GetTasks позволяет получить набор задач с заданным лимитом
@@ -69,8 +67,8 @@ func (s Storage) GetTasks() ([]task.Task, error) {
 // GetTask ищет в базе задачу по заданному id и возвращает её
 func (s Storage) GetTask(id int) (task.Task, error) {
 	var task task.Task
-	row := s.DB.QueryRow("SELECT date, title, comment, repeat FROM scheduler WHERE id = :id", sql.Named("id", id))
-	err := row.Scan(&task.Date, &task.Title, &task.Comment, &task.Repeat)
+	row := s.DB.QueryRow("SELECT id, date, title, comment, repeat FROM scheduler WHERE id = :id", sql.Named("id", id))
+	err := row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return task, fmt.Errorf("no rows were found: %v", err)

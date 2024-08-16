@@ -38,7 +38,6 @@ func TaskDone(s storage.Storage) http.HandlerFunc {
 			encode.ErrorJSON(w, fmt.Errorf("failed to retrieve task: %v", err), http.StatusBadRequest)
 			return
 		}
-		task.ID = id
 		if task.Date == "" {
 			task.Date = time.Now().Format(rep.Format)
 		}
