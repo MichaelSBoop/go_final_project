@@ -66,12 +66,18 @@ func SingleTask(s storage.Storage) http.HandlerFunc {
 				encode.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
 				return
 			}
+			intId, err := strconv.Atoi(id)
+			if err != nil {
+				encode.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
+				return
+			}
 			// Получаем задачу
-			task, err := s.GetTask(id)
+			task, err = s.GetTask(intId)
 			if err != nil {
 				encode.ErrorJSON(w, fmt.Errorf("failed to retrieve task: %v", err), http.StatusBadRequest)
 				return
 			}
+			task.ID = id
 			// Формируем JSON для записи
 			jsonTask := encode.FormulateResponseTask(task)
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -98,12 +104,12 @@ func SingleTask(s storage.Storage) http.HandlerFunc {
 				encode.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
 				return
 			}
-			_, err = strconv.Atoi(task.ID)
+			intId, err := strconv.Atoi(task.ID)
 			if err != nil {
 				encode.ErrorJSON(w, fmt.Errorf("incorrect id: %v", err), http.StatusBadRequest)
 				return
 			}
-			_, err = s.GetTask(task.ID)
+			_, err = s.GetTask(intId)
 			if err != nil {
 				encode.ErrorJSON(w, fmt.Errorf("incorrect id: %v", err), http.StatusBadRequest)
 				return

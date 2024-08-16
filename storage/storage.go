@@ -64,21 +64,16 @@ func (s Storage) GetTasks(limit int) ([]task.Task, error) {
 }
 
 // GetTask ищет в базе задачу по заданному id и возвращает её
-func (s Storage) GetTask(id string) (task.Task, error) {
+func (s Storage) GetTask(id int) (task.Task, error) {
 	var task task.Task
-	_, err := strconv.Atoi(id)
-	if err != nil {
-		return task, err
-	}
 	row := s.DB.QueryRow("SELECT date, title, comment, repeat FROM scheduler WHERE id = :id", sql.Named("id", id))
-	err = row.Scan(&task.Date, &task.Title, &task.Comment, &task.Repeat)
+	err := row.Scan(&task.Date, &task.Title, &task.Comment, &task.Repeat)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return task, fmt.Errorf("no rows were found: %v", err)
 		}
 		return task, err
 	}
-	task.ID = id
 	return task, nil
 }
 
