@@ -14,16 +14,10 @@ var DB *sql.DB
 // Scheduler ищет путь к базе данных, открывает с ней соединение или создаёт её с нуля, если её нет
 func Scheduler() (*sql.DB, error) {
 	// Проверка наличия пути для существующей базы данных
-	// appPath, err := os.Executable()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 	dbPath, ok := os.LookupEnv("TODO_DBFILE")
 	if !ok {
 		dbPath = "./"
 	}
-	// ? Тест тянет файл базы из окружения, но если создавать её с помощью программы, база появится
-	// ? рядом с исполняемым файлом, соответственно, тесты ищут её не там, где надо. Проблема в тесте?
 	dbFile := filepath.Join(dbPath, "scheduler.db")
 	_, err := os.Stat(dbFile)
 

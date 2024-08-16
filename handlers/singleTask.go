@@ -43,29 +43,6 @@ func SingleTask(s storage.Storage) http.HandlerFunc {
 				return
 			}
 			task.Date = newDate
-			// var newDate string
-			// now := time.Now()
-			// if task.Date == "" {
-			// 	task.Date = now.Format(rep.Format)
-			// }
-			// dateParsed, err := time.Parse(rep.Format, task.Date)
-			// if err != nil {
-			// 	encode .ErrorJSON(w, fmt.Errorf("failed to parse date: %v", err), http.StatusBadRequest)
-			// 	return
-			// }
-			// // Записываем дату в задачу в зависимости от наличия правила повторения и самой даты
-			// newDate = task.Date
-			// if task.Repeat != "" {
-			// 	newDate, err = rep.NextDate(now, newDate, task.Repeat)
-			// 	if err != nil {
-			// 		encode .ErrorJSON(w, err, http.StatusInternalServerError)
-			// 		return
-			// 	}
-			// }
-			// if dateParsed.Before(now) && task.Repeat != "" && task.Date != now.Format(rep.Format) {
-			// 	task.Date = newDate
-			// }
-			// fmt.Println(task.Title, task.Date)
 			// Добавляем задачу в базу данных и возвращаем её id
 			taskId, err := s.AddTask(task)
 			if err != nil {
@@ -161,10 +138,6 @@ func SingleTask(s storage.Storage) http.HandlerFunc {
 			}
 			// Формируем JSON для записи
 			jsonEmpty := encode.FormulateResponseEmpty()
-			// if err != nil {
-			// 	encode .ErrorJSON(w, fmt.Errorf("failed to marshal data: %v", err), http.StatusBadRequest)
-			// 	return
-			// }
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			w.WriteHeader(http.StatusOK)
 			_, err = w.Write(jsonEmpty)
