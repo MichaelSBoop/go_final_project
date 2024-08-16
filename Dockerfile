@@ -10,6 +10,8 @@ ENV TODO_PORT=7540
 
 ENV TODO_DBFILE=./
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./
+ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64 
+
+RUN go build -o ./
 
 CMD ["./go_final_project"]
