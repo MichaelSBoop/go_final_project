@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	jsr "github.com/MichaelSBoop/go_final_project/JSONResponse"
+	"github.com/MichaelSBoop/go_final_project/encode"
 	rep "github.com/MichaelSBoop/go_final_project/repeater"
 	"github.com/MichaelSBoop/go_final_project/storage"
 	"github.com/MichaelSBoop/go_final_project/task"
@@ -25,21 +25,21 @@ func HandleTask(s storage.Storage) http.HandlerFunc {
 			var buf bytes.Buffer
 			_, err := buf.ReadFrom(r.Body)
 			if err != nil {
-				jsr.ErrorJSON(w, fmt.Errorf("failed to read body: %v", err), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("failed to read body: %v", err), http.StatusBadRequest)
 				return
 			}
 			if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
-				jsr.ErrorJSON(w, fmt.Errorf("failed to unmarshal data: %v", err), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("failed to unmarshal data: %v", err), http.StatusBadRequest)
 				return
 			}
 			if task.Title == "" {
-				jsr.ErrorJSON(w, fmt.Errorf("title is required"), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("title is required"), http.StatusBadRequest)
 				return
 			}
 			// Записываем дату в задачу в зависимости от наличия правила повторения и самой даты
 			newDate, err := rep.PostLogic(task)
 			if err != nil {
-				jsr.ErrorJSON(w, fmt.Errorf("failed to calculate new date: %v", err), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("failed to calculate new date: %v", err), http.StatusBadRequest)
 				return
 			}
 			task.Date = newDate
@@ -50,7 +50,7 @@ func HandleTask(s storage.Storage) http.HandlerFunc {
 			// }
 			// dateParsed, err := time.Parse(rep.Format, task.Date)
 			// if err != nil {
-			// 	jsr.ErrorJSON(w, fmt.Errorf("failed to parse date: %v", err), http.StatusBadRequest)
+			// 	encode .ErrorJSON(w, fmt.Errorf("failed to parse date: %v", err), http.StatusBadRequest)
 			// 	return
 			// }
 			// // Записываем дату в задачу в зависимости от наличия правила повторения и самой даты
@@ -58,7 +58,7 @@ func HandleTask(s storage.Storage) http.HandlerFunc {
 			// if task.Repeat != "" {
 			// 	newDate, err = rep.NextDate(now, newDate, task.Repeat)
 			// 	if err != nil {
-			// 		jsr.ErrorJSON(w, err, http.StatusInternalServerError)
+			// 		encode .ErrorJSON(w, err, http.StatusInternalServerError)
 			// 		return
 			// 	}
 			// }
@@ -69,11 +69,11 @@ func HandleTask(s storage.Storage) http.HandlerFunc {
 			// Добавляем задачу в базу данных и возвращаем её id
 			taskId, err := s.AddTask(task)
 			if err != nil {
-				jsr.ErrorJSON(w, fmt.Errorf("failed to add task: %v", err), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("failed to add task: %v", err), http.StatusBadRequest)
 				return
 			}
 			// Формулируем JSON для записи
-			jsonId := jsr.FormulateResponseID("id", taskId)
+			jsonId := encode.FormulateResponseID("id", taskId)
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			w.WriteHeader(http.StatusCreated)
 			_, err = w.Write(jsonId)
@@ -86,17 +86,17 @@ func HandleTask(s storage.Storage) http.HandlerFunc {
 			var task task.Task
 			id := r.URL.Query().Get("id")
 			if id == "" {
-				jsr.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
 				return
 			}
 			// Получаем задачу
 			task, err := s.GetTask(id)
 			if err != nil {
-				jsr.ErrorJSON(w, fmt.Errorf("failed to retrieve task: %v", err), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("failed to retrieve task: %v", err), http.StatusBadRequest)
 				return
 			}
 			// Формируем JSON для записи
-			jsonTask := jsr.FormulateResponseTask(task)
+			jsonTask := encode.FormulateResponseTask(task)
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			w.WriteHeader(http.StatusOK)
 			_, err = w.Write(jsonTask)
@@ -110,29 +110,29 @@ func HandleTask(s storage.Storage) http.HandlerFunc {
 			var buf bytes.Buffer
 			_, err := buf.ReadFrom(r.Body)
 			if err != nil {
-				jsr.ErrorJSON(w, err, http.StatusBadRequest)
+				encode.ErrorJSON(w, err, http.StatusBadRequest)
 				return
 			}
 			if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
-				jsr.ErrorJSON(w, fmt.Errorf("failed to unmarshal data:%v", err), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("failed to unmarshal data:%v", err), http.StatusBadRequest)
 				return
 			}
 			if task.ID == "" {
-				jsr.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
 				return
 			}
 			_, err = strconv.Atoi(task.ID)
 			if err != nil {
-				jsr.ErrorJSON(w, fmt.Errorf("incorrect id: %v", err), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("incorrect id: %v", err), http.StatusBadRequest)
 				return
 			}
 			_, err = s.GetTask(task.ID)
 			if err != nil {
-				jsr.ErrorJSON(w, fmt.Errorf("incorrect id: %v", err), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("incorrect id: %v", err), http.StatusBadRequest)
 				return
 			}
 			if task.Title == "" {
-				jsr.ErrorJSON(w, fmt.Errorf("title is required"), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("title is required"), http.StatusBadRequest)
 				return
 			}
 			if task.Date == "" {
@@ -140,14 +140,14 @@ func HandleTask(s storage.Storage) http.HandlerFunc {
 			}
 			dateParsed, err := time.Parse(rep.Format, task.Date)
 			if err != nil {
-				jsr.ErrorJSON(w, err, http.StatusBadRequest)
+				encode.ErrorJSON(w, err, http.StatusBadRequest)
 				return
 			}
 			if dateParsed.Before(time.Now()) {
 				if task.Repeat != "" {
 					task.Date, err = rep.NextDate(time.Now(), task.Date, task.Repeat)
 					if err != nil {
-						jsr.ErrorJSON(w, fmt.Errorf("failed to set next date: %v", err), http.StatusBadRequest)
+						encode.ErrorJSON(w, fmt.Errorf("failed to set next date: %v", err), http.StatusBadRequest)
 						return
 					}
 				} else {
@@ -156,13 +156,13 @@ func HandleTask(s storage.Storage) http.HandlerFunc {
 			}
 			// Изменяем задачу в базе
 			if err = s.ChangeTask(task); err != nil {
-				jsr.ErrorJSON(w, fmt.Errorf("failed to change task data: %v", err), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("failed to change task data: %v", err), http.StatusBadRequest)
 				return
 			}
 			// Формируем JSON для записи
-			jsonEmpty := jsr.FormulateResponseEmpty()
+			jsonEmpty := encode.FormulateResponseEmpty()
 			// if err != nil {
-			// 	jsr.ErrorJSON(w, fmt.Errorf("failed to marshal data: %v", err), http.StatusBadRequest)
+			// 	encode .ErrorJSON(w, fmt.Errorf("failed to marshal data: %v", err), http.StatusBadRequest)
 			// 	return
 			// }
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -176,15 +176,15 @@ func HandleTask(s storage.Storage) http.HandlerFunc {
 			// Получаем id и и на его основе удаляем задачу из базы
 			id := r.URL.Query().Get("id")
 			if id == "" {
-				jsr.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("id is required"), http.StatusBadRequest)
 				return
 			}
 			if err := s.DeleteTask(id); err != nil {
-				jsr.ErrorJSON(w, fmt.Errorf("failed to delete task: %v", err), http.StatusBadRequest)
+				encode.ErrorJSON(w, fmt.Errorf("failed to delete task: %v", err), http.StatusBadRequest)
 				return
 			}
 			// Формируем JSON ответ
-			jsonEmpty := jsr.FormulateResponseEmpty()
+			jsonEmpty := encode.FormulateResponseEmpty()
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			w.WriteHeader(http.StatusOK)
 			_, err := w.Write(jsonEmpty)
