@@ -47,10 +47,10 @@ func main() {
 
 	// TODO: добавить mux или chi для обработчиков
 	http.Handle("/", http.FileServer(http.Dir(webDir)))
-	http.HandleFunc("/api/nextdate", handlers.HandleNextDate)
-	http.HandleFunc("/api/task", handlers.HandleTask(db))
-	http.HandleFunc("/api/tasks", handlers.HandleTasks(db))
-	http.HandleFunc("/api/task/done", handlers.HandleTaskDone(db))
+	http.HandleFunc("/api/nextdate", handlers.NextDate)
+	http.HandleFunc("/api/task", handlers.SingleTask(db))
+	http.HandleFunc("/api/tasks", handlers.MultipleTasks(db))
+	http.HandleFunc("/api/task/done", handlers.TaskDone(db))
 
 	// Прослушиваем порт, стандартный или взятый из окружения
 	port := checkPort()

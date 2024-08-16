@@ -11,7 +11,7 @@ import (
 const limit = 50
 
 // HandleTasks формирует список задач на основе заданного лимита
-func HandleTasks(s storage.Storage) http.HandlerFunc {
+func MultipleTasks(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Проверяем правильность метода
 		if r.Method != http.MethodGet {

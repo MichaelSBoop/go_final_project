@@ -15,7 +15,7 @@ import (
 )
 
 // HandleTask обрабатывает GET, POST, PUT и DELETE http-запросы, обращаясь к базе данных
-func HandleTask(s storage.Storage) http.HandlerFunc {
+func SingleTask(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		// Добавление задачи

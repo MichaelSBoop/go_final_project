@@ -14,7 +14,7 @@ import (
 
 // HandleTaskDone помечает задачу как выполненную;
 // в зависимости от наличия повторений задача может быть обновлена или удалена
-func HandleTaskDone(s storage.Storage) http.HandlerFunc {
+func TaskDone(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Проверяем правильность http-метода
 		if r.Method != http.MethodPost {

@@ -10,7 +10,7 @@ import (
 )
 
 // HandleNextDate вычисляет и передаёт дату следующего дедлайна для задачи в виде ответа на GET-запрос
-func HandleNextDate(w http.ResponseWriter, r *http.Request) {
+func NextDate(w http.ResponseWriter, r *http.Request) {
 	// Проверяем правильность метода
 	if r.Method != http.MethodGet {
 		http.Error(w, "incorrect http method", http.StatusBadRequest)
