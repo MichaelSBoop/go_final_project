@@ -11,6 +11,9 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// Константа лимита передаваемых задач
+const limit = 50
+
 // Создание хранилища задач
 type Storage struct {
 	DB *sql.DB
@@ -39,7 +42,7 @@ func (s Storage) AddTask(task task.Task) (string, error) {
 }
 
 // GetTasks позволяет получить набор задач с заданным лимитом
-func (s Storage) GetTasks(limit int) ([]task.Task, error) {
+func (s Storage) GetTasks() ([]task.Task, error) {
 	var tasks []task.Task
 	rows, err := s.DB.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT ?", limit)
 	if err != nil {

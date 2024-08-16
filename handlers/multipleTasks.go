@@ -8,8 +8,6 @@ import (
 	"github.com/MichaelSBoop/go_final_project/storage"
 )
 
-const limit = 50
-
 // HandleTasks формирует список задач на основе заданного лимита
 func MultipleTasks(s storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +17,7 @@ func MultipleTasks(s storage.Storage) http.HandlerFunc {
 			return
 		}
 		// Получаем список задач
-		tasks, err := s.GetTasks(limit)
+		tasks, err := s.GetTasks()
 		if err != nil {
 			encode.ErrorJSON(w, fmt.Errorf("failed to retrieve tasks from database: %v", err), http.StatusBadRequest)
 			return
