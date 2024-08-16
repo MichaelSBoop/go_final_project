@@ -37,7 +37,7 @@ func SingleTask(s storage.Storage) http.HandlerFunc {
 				return
 			}
 			// Записываем дату в задачу в зависимости от наличия правила повторения и самой даты
-			newDate, err := rep.PostLogic(task)
+			newDate, err := rep.NewDatePost(task)
 			if err != nil {
 				encode.ErrorJSON(w, fmt.Errorf("failed to calculate new date: %v", err), http.StatusBadRequest)
 				return
