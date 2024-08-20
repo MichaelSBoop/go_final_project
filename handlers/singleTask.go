@@ -52,7 +52,7 @@ func SingleTask(s storage.Storage) http.HandlerFunc {
 			// Последний идентификатор возвращается в формате int64, приводим его в строку
 			stringId := strconv.FormatInt(taskId, 10)
 			// Формулируем JSON для записи
-			jsonId := encode.FormulateResponseID("id", stringId)
+			jsonId := encode.FormulateResponseID(stringId)
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			w.WriteHeader(http.StatusCreated)
 			_, err = w.Write(jsonId)

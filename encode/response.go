@@ -12,7 +12,7 @@ import (
 
 // Функции FormulateResponse формируют значение для отправки и осуществляет проверку сериализации в JSON
 
-func FormulateResponseID(responseType, data string) []byte {
+func FormulateResponseID(data string) []byte {
 	resMap := make(map[string]string)
 	resMap["id"] = data
 	jsonRes, err := json.Marshal(resMap)
