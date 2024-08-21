@@ -43,5 +43,25 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		}
 		return nextDay.Format(Format), nil
 	}
+	if repeatValues[0] == "w" && len(repeatValues[0]) != 0 {
+		var nextDay time.Time
+		days := strings.Split(repeatValues[0], ",")
+		for _, day := range days {
+			dayInt, err := strconv.Atoi(day)
+			if dayInt <= 0 || dayInt > 7 {
+				return response, fmt.Errorf("incorrect repetition format")
+			}
+			if err != nil {
+				return response, err
+			}
+			weekDay := time.Weekday(dayInt)
+			if now.Weekday() < weekDay {
+				return nextDay.Format(Format), nil
+			}
+		}
+	}
+	if repeatValues[0] == "m" {
+
+	}
 	return response, fmt.Errorf("incorrect repetition format")
 }
