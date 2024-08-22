@@ -1,4 +1,8 @@
+include .env
 run:
 	go run .
-testtall:
+build:
+	go build -o ./cmd 
+
+testall: run
 	go test ./tests/...
