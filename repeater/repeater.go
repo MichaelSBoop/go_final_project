@@ -54,10 +54,16 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			if err != nil {
 				return response, err
 			}
-			weekDay := time.Weekday(dayInt)
-			if now.Weekday() < weekDay {
+			weekDay := int(now.Weekday())
+			if weekDay < dayInt {
+				nextDay = now.AddDate(0, 0, dayInt-weekDay)
 				return nextDay.Format(Format), nil
 			}
+			nextDay = now
+			for byte(nextDay.Weekday()) != day[0] {
+				nextDay = nextDay.AddDate(0, 0, 1)
+			}
+			return nextDay.Format(Format), nil
 		}
 	}
 	if repeatValues[0] == "m" {
