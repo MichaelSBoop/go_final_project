@@ -1,0 +1,7 @@
+.git*
+Dockerfile
+.env
+*.md
+tests
+*.exe
+*.db
