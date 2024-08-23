@@ -1,17 +1,18 @@
 FROM golang:1.22.1
 
-WORKDIR /go_final_project
+WORKDIR /app
 
-COPY . .
+COPY web ./web
 
-RUN go mod download
+COPY app *.sql .env ./
 
-ENV TODO_PORT=7540
+ARG TODO_PORT=7540
+
+ENV TODO_PORT=${TODO_PORT}
 
 ENV TODO_DBFILE=./
 
-ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64 
+ENV TODO_DBFILE=${TODO_DBFILE}
 
-RUN go build -o ./
+CMD ["./app"]
 
-CMD ["./go_final_project"]
