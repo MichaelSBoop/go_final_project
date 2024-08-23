@@ -31,8 +31,8 @@ func checkPort() string {
 	}
 	_, err := strconv.Atoi(port)
 	if err != nil {
-		fmt.Println("incorrect port type")
-		return ""
+		fmt.Println("incorrect port type, switching to 7540")
+		return ":7540"
 	}
 	return ":" + port
 }
