@@ -1,18 +1,29 @@
-FROM golang:1.22.1
+FROM golang:1.22.1 AS builder
+
+RUN mkdir app
 
 WORKDIR /app
 
-COPY web ./web
+COPY . .
 
-COPY app *.sql .env ./
+RUN go mod download
 
-ARG TODO_PORT=7540
+ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 
-ENV TODO_PORT=${TODO_PORT}
+RUN go build -o ./app .
 
-ENV TODO_DBFILE=./
+FROM alpine
 
-ENV TODO_DBFILE=${TODO_DBFILE}
+RUN adduser -S -D -H -h /app user
+
+USER user
+
+WORKDIR /app
+
+COPY /web ./web
+
+COPY *.sql .env ./
+
+COPY --from=builder app/app ./
 
 CMD ["./app"]
-

@@ -1,24 +1,22 @@
-include .env
+ifneq (,$(wildcard ./.env*))
+	include .env*
+	export
+endif
 
 run:
 	go run .
 
 exe:
-	go build -o ./app/app .
+	go build -o ./app .
 
-docker-exe:
- 	CGO_ENABLED=$(CGO_ENABLED) 
-	GOOS=$(GOOS) 
-	GOARCH=$(GOARCH) 
-	go build -o ./app/app .
-
-image: docker-exe
+image: 
 	@echo "building image..."
-	docker build --build-arg TODO_PORT=${TODO_PORT} --build-arg TODO_DBFILE=${TODO_DBFILE} --tag go_final_project:v1.1.0 .
+	docker build --tag go_final_project:v1.1.0 .
 	
 container: image
 	@echo "creating container..."
-	docker run -d --rm -p ${TODO_PORT}:${TODO_PORT} go_final_project:v1.1.0
+	docker volume create todo
+	docker run -d -v todo:$(TODO_DBFILE) -p 7540:7540 go_final_project:v1.1.0
 
 testall: container
 	go test ./tests/...

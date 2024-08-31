@@ -17,7 +17,7 @@ var webDir string = "./web"
 
 // Загружаем переменные окружения сразу при запуске main
 func init() {
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load(".env"); err != nil {
 		fmt.Println("No .env file found")
 	}
 }
