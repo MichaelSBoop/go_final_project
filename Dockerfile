@@ -26,4 +26,6 @@ COPY *.sql .env ./
 
 COPY --from=builder app/app ./
 
-CMD ["./app"]
+CMD ["./go_final_project"]
+
+EXPOSE 7540

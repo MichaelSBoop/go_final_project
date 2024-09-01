@@ -16,7 +16,7 @@ image:
 container: image
 	@echo "creating container..."
 	docker volume create todo
-	docker run -d -v todo:$(TODO_DBFILE) -p 7540:7540 go_final_project:v1.1.0
+	docker run -d -v todo:/app -P go_final_project:v1.1.0
 
-testall: container
+testall:
 	go test ./tests/...
